@@ -163,13 +163,13 @@ def get_conf_filename():
 
 def guess_love_version():
     filename = get_conf_filename()
-    if filename == None:
+    if filename is None:
         return None
 
     with open(filename) as f:
         conf_lua = f.read()
 
-    regex = re.compile(r"(?<!--)\.version\s*=\s*\"(.*)\"")
+    regex = re.compile(r'''(?<!--)\.version\s*=\s*["'](.*)["']''')
     matches = regex.findall(conf_lua)
     if len(matches) == 0:
         return None
