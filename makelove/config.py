@@ -1,8 +1,9 @@
+import io
 import os
+import re
 import shutil
 import subprocess
 import sys
-import re
 
 import toml
 
@@ -135,7 +136,7 @@ def is_inside_git_repo():
         return False
 
 
-def guess_name():
+def guess_name_from_directory():
     res = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True)
     if res.returncode == 0:
         git_root_path = res.stdout.decode("utf-8").strip()
@@ -161,29 +162,43 @@ def get_conf_filename():
     return None
 
 
-def guess_love_version():
+def get_love_conf():
     filename = get_conf_filename()
     if filename is None:
         return None
 
-    with io.open(filename, 'r') as f:
+    with open(filename) as f:
         comment = re.compile(r"\s*--")
         conf_lua = [line for line in f if not comment.match(line)]
         conf_lua = "\n".join(conf_lua)
 
-
-    regex = re.compile(r"""\.version\s*=\s*["'](.*)["']""")
+    regex = re.compile(r"""\.(\w+)\s*=\s*["'](.*)["']""")
     matches = regex.findall(conf_lua)
-    if len(matches) == 0:
+    conf = {}
+    for m in matches:
+        key = m[0]
+        values = conf.get(key, set())
+        values.add(m[1])
+        conf[key] = values
+    return conf
+
+
+def guess_from_love_conf(love_conf, key):
+    if not love_conf:
         return None
-    elif len(matches) > 1:
+
+    matches = love_conf.get(key)
+    if not matches:
+        return None
+    if len(matches) > 1:
         print(
-            "Could not determine löve version unambiguously. Candidates: {}".format(
-                matches
+            "Could not determine löve {} unambiguously from love config. Candidates: {}".format(
+                key,
+                matches,
             )
         )
         return None
-    return matches[0]
+    return next(iter(matches))
 
 
 def get_default_love_files(build_directory):
@@ -224,11 +239,12 @@ def get_raw_config(config_path):
 
 def get_config(config_path):
     config = get_raw_config(config_path)
+    love_conf = get_love_conf()
     if not "name" in config:
-        config["name"] = guess_name()
+        config["name"] = guess_from_love_conf(love_conf, 'identity') or guess_name_from_directory()
         print("Guessing project name as '{}'".format(config["name"]))
     if not "love_version" in config:
-        conf_love_version = guess_love_version()
+        conf_love_version = guess_from_love_conf(love_conf, 'version')
         if conf_love_version:
             config["love_version"] = conf_love_version
             print(
@@ -247,6 +263,17 @@ def get_config(config_path):
     if not "love_files" in config:
         config["love_files"] = get_default_love_files(config["build_directory"])
         print("Using default love_files patterns: {}".format(config["love_files"]))
+    lovejs = config.get("lovejs")
+    if lovejs is not None and "title" not in lovejs:
+        # [lovejs] section exists, but doesn't already have a title.
+        conf_title = guess_from_love_conf(love_conf, 'title')
+        if conf_title:
+            lovejs["title"] = conf_title
+            print(
+                "Guessed löve.js window title from löve config file: {}".format(
+                    conf_title
+                )
+            )
     validate_config(config)
     return config
 
