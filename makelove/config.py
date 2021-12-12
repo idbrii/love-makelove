@@ -166,10 +166,13 @@ def guess_love_version():
     if filename is None:
         return None
 
-    with open(filename) as f:
-        conf_lua = f.read()
+    with io.open(filename, 'r') as f:
+        comment = re.compile(r"\s*--")
+        conf_lua = [line for line in f if not comment.match(line)]
+        conf_lua = "\n".join(conf_lua)
 
-    regex = re.compile(r'''(?<!--)\.version\s*=\s*["'](.*)["']''')
+
+    regex = re.compile(r"""\.version\s*=\s*["'](.*)["']""")
     matches = regex.findall(conf_lua)
     if len(matches) == 0:
         return None
