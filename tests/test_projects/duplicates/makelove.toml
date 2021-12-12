@@ -1,9 +1,0 @@
-default_targets = [
-    "win32",
-]
-build_directory = "build"
-
-love_files = [
-    "::git-ls-tree::",
-    "-*/.*",
-]
