@@ -18,11 +18,7 @@ love_files = [
 """
 
 test_project = Path(__file__).parent / "test_project"
-test_project.mkdir(exist_ok=True)
-os.chdir(test_project)
 makelove_path = test_project / "makelove.toml"
-with makelove_path.open("w") as f:
-    f.write(toml)
 
 
 def load_project(conf_name, conf_text):
@@ -34,24 +30,38 @@ def load_project(conf_name, conf_text):
     return cfg
 
 
-print("Test All guessables")
-cfg = load_project(
-    "conf.lua",
-    """function love.conf(t)
+def setup_module(module):
+    test_project.mkdir(exist_ok=True)
+    os.chdir(test_project)
+    with makelove_path.open("w") as f:
+        f.write(toml)
+
+
+def teardown_module(module):
+    makelove_path.unlink()
+    os.chdir(test_project.parent)
+    test_project.rmdir()
+
+
+def test_all_guessables():
+    cfg = load_project(
+        "conf.lua",
+        """
+function love.conf(t)
     t.identity     = 'namefromconf'
     t.version      = '11.1'
     t.window.title = 'Title of Window'
 end""",
-)
-assert cfg["name"] == "namefromconf"
-assert cfg["love_version"] == "11.1"
-assert cfg["lovejs"]["title"] == "Title of Window"
+    )
+    assert cfg["name"] == "namefromconf"
+    assert cfg["love_version"] == "11.1"
+    assert cfg["lovejs"]["title"] == "Title of Window"
 
 
-print("Test Duplicates")
-cfg = load_project(
-    "conf.lua",
-    """
+def test_duplicates():
+    cfg = load_project(
+        "conf.lua",
+        """
 function love.conf(t)
     if true then
         t.identity     = 'normalname'
@@ -63,25 +73,22 @@ function love.conf(t)
         t.window.title = 'Debug Window'
     end
 end
-""",
-)
-assert cfg["name"] not in ["normalname", "debugname"]
-assert cfg["love_version"] not in ["11.0", "11.1"]
+    """,
+    )
+    assert cfg["name"] not in ["normalname", "debugname"]
+    assert cfg["love_version"] not in ["11.0", "11.1"]
 
 
-print("Test Comments")
-cfg = load_project(
-    "conf.lua",
-    """function love.conf(t)
+def test_comments():
+    cfg = load_project(
+        "conf.lua",
+        """
+function love.conf(t)
     --t.identity     = 'namefromconf'
     -- t.version      = '11.1'
     -- OLD title: t.window.title = 'Title of Window'
 end""",
-)
-assert cfg["name"] != "namefromconf"
-assert cfg["love_version"] != "11.1"
-assert "title" not in cfg["lovejs"]
-
-makelove_path.unlink()
-os.chdir(test_project.parent)
-test_project.rmdir()
+    )
+    assert cfg["name"] != "namefromconf"
+    assert cfg["love_version"] != "11.1"
+    assert "title" not in cfg["lovejs"]
