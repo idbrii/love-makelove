@@ -67,7 +67,7 @@ prebuild = [
 postbuild = [
 	# {build_directory} and {version} will be replaced
 	# Assuming you have a publish_build script:
-	"publish_build --buildversion {version} --directory {build_directory}/win32/SuperGame-win32.zip",
+	"publish_build --buildversion {version} --directory {build_directory}/win32/{name}-win32.zip",
 ]
 
 [hooks.parameters]

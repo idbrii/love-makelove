@@ -19,6 +19,7 @@ def execute_hook(command, config, version, targets, build_directory):
 
     env = os.environ.copy()
     env.update({
+        "MAKELOVE_NAME": config["name"],
         "MAKELOVE_TEMP_CONFIG": tmp_config_path,
         "MAKELOVE_VERSION": version or "",
         "MAKELOVE_TARGETS": ",".join(targets),
@@ -26,7 +27,9 @@ def execute_hook(command, config, version, targets, build_directory):
     })
 
     command_replaced = command.format(
-        version=version or "", build_directory=build_directory
+        version=version or "",
+        name=config["name"],
+        build_directory=build_directory,
     )
 
     try:
