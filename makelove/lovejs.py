@@ -22,6 +22,11 @@ def download_love(version, platform):
         download_url = "https://github.com/Davidobot/love.js/archive/master.zip"
         print("Downloading '{}'..".format(download_url))
         urlretrieve(download_url, os.path.join(target_path, "love.zip"))
+
+        # Save refs so we know what version of lovejs we downloaded.
+        download_url = "https://api.github.com/repos/Davidobot/love.js/git/refs"
+        print("Downloading '{}'..".format(download_url))
+        urlretrieve(download_url, os.path.join(target_path, "love.json"))
     except URLError as exc:
         eprint("Could not download löve: {}".format(exc))
         eprint(
